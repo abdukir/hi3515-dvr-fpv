@@ -1,0 +1,76 @@
+# dvr.conf — config for our own DVR recorder (device/dvr/dvr.c).
+#
+# Read ONCE at startup. Every key below shows its real built-in default, so this file as
+# written changes nothing — edit what you want and restart the DVR (web Config tab
+# "Save & restart", or `killall dvr` over telnet; the wrapper respawns it).
+#
+# WHERE IT LIVES: dvr.c reads /root/rec/dvr.conf, which is on the VOLATILE RAM disk.
+# Keep the real copy at /root/rec/a1/dvr.conf (SATA) — boot.sh copies it into place on
+# every boot, and the web Config tab writes both. See docs/FLASH.md.
+# Format: key=value, integers only, '#' starts a comment.
+
+# --- video standard (one setting for ALL channels — the hardware can't mix) ---
+standard=1        # 1=NTSC  2=PAL  0=auto-detect (reads the TW2866 per channel)
+                  # Runtime override: the web Config toggle / control `STD PAL|NTSC|AUTO`
+                  # writes /root/rec/std and restarts the pipeline to apply it.
+
+# --- encoder ---
+# Defaults are tuned for ONE FPV camera at maximum quality, not for 4-up CCTV.
+fps=30            # frame rate (30 NTSC / forced to 25 for PAL)
+gop=15            # keyframe interval in frames — 15 = every 0.5 s. Lower = faster stream
+                  # join, finer scrubbing and cheaper backward-step re-decode; ~7% bigger.
+width=704         # 704 = full-width 2CIF, the widest this VIU captures
+height=240        # single NTSC field (auto 288 for PAL); the VO scales it back to 4:3
+rc_mode=3         # 3 = FIXQP (constant quality, bitrate floats freely — best for FPV)
+                  # 0 = VBR quality-0, self-capped at `bitrate` (smaller files when still)
+qp=10             # FIXQP quantiser 10..50, LOWER = more bits. 10 ≈ 17-23 Mbps here and
+                  # is visually lossless; 16 ≈ 12-16 Mbps. Only used when rc_mode=3.
+                  # qp=10 records every frame at ~26 Mbps since 2026-07-25. It did NOT
+                  # before: the record path cost more per frame than the 33 ms budget, so
+                  # the VENC FIFO overflowed and ~20% of frames were lost before we saw
+                  # them (23.7 fps written of 29.97 captured). The live stream stayed at
+                  # full rate throughout, which is exactly why it hid for so long — the
+                  # monitor looked perfect while the file quietly got less. Fixed by
+                  # making the write path cheap enough to keep up: see docs/REVIEW.md R10.
+                  # Now 29.97 fps written, recording and streaming at once. If you push
+                  # width/height/enc_channels up, re-measure rather than assuming.
+bitrate=12288     # kbps. The cap for rc_mode=0; also sizes the encoder ring buffer, so
+                  # do not set it far below the bitrate FIXQP actually produces.
+enc_channels=1    # how many channels to ENCODE/record. All 4 are always captured and
+                  # switchable on the VGA output; only these are encoded. 704-wide
+                  # capture cannot sustain 4 channels — raise this only at lower width.
+
+# --- recording (manual, per channel) ---
+min_free_mb=300   # refuse to start, and auto-stop, if free SATA space drops below this
+max_rec_mb=2000   # cap one recording file (~2 GB, safely under the vfat 4 GB limit)
+
+# --- capture channels ---
+vi_all=0          # 0 = only bring up the VI channels something consumes (the displayed one
+                  #     plus the encoded ones). 1 = all four, the original behaviour.
+                  # Leave this at 0. Idle VI channels capture into the shared VB pool and
+                  # nothing drains them, which eventually starves the channel you care
+                  # about -- the "live feed freezes but the clock keeps running" bug.
+                  # Switching channels restarts the pipeline anyway, so nothing is lost.
+
+# --- front panel ---
+ui_sound=1        # 1 = beep on menu navigation (distinct tones for move / enter / back).
+                  # 0 = silent menus. Record start/stop melodies play regardless.
+                  # Also togglable from the OSD Settings > Sound menu and the web Config
+                  # tab; either writes /root/rec/snd, which overrides this line on the
+                  # next start. Runtime: control command `SND 0` / `SND 1`.
+
+# --- diagnostics / workarounds ---
+vo_watchdog=1     # 0 disables the periodic VO liveness probe
+
+# --- VGA output / latency (see docs/DISPLAY_PATH.md) ---
+vosync=9          # 9=1280x1024@60 (default), 8/13=1024x768 @60/@75, 7/12=800x600 @60/@75,
+                  # 2=720p, 6=1080p30, 10=1366x768, 11=1440x900. 720p/1080p are rejected
+                  # over the VGA connector on some monitors (VESA modes only).
+vifps=60          # VI capture rate. 60 = smoother/lower latency on the display path.
+votol=1           # VO play toleration in ms; 1 = minimum buffering = lowest glass-to-glass
+display=1         # 1 = pillarbox (aspect-correct, black bars)   0 = fill (stretch)
+
+# Recording is MANUAL: start/stop per channel from the web Live tab, the on-screen menu,
+# the MCU switch, or the control protocol (REC/STOP — docs/CONTROL_PROTOCOL.md).
+# Files land at /root/rec/aN/YYYYMMDD_HHMMSS_chN.ts (MPEG-TS, real PTS, each starting
+# with SPS/PPS/IDR) and are served/downloaded as MP4 by the web UI.

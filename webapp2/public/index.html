@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NetDVR Console</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand mono">RR</div>
+    <button class="navbtn active" data-view="live"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18"/></svg>Live</button>
+    <button class="navbtn" data-view="rec"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/></svg>Clips</button>
+    <button class="navbtn" data-view="mon"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Monitor</button>
+    <button class="navbtn" data-view="files"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Files</button>
+    <button class="navbtn" data-view="term"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></svg>Shell</button>
+    <button class="navbtn" data-view="set"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2 2M16.4 16.4l2 2M18.4 5.6l-2 2M7.6 16.4l-2 2"/></svg>Config</button>
+    <div class="spacer"></div>
+    <button class="iconbtn" id="theme" title="Theme"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <span class="name">NetDVR <small>RR104P</small></span>
+      <span class="pill" id="connpill"><span class="dot" id="conndot"></span><span id="connlbl">connecting…</span></span>
+      <span class="pill" id="recpill" style="display:none"><span class="dot rec"></span>REC <span class="mono" id="recn">0</span></span>
+      <span class="pill" id="pbpill" style="display:none">▶ on monitor</span>
+      <div class="right">
+        <span class="pill" id="diskpill" title="free space on the recording disk"><span class="mono" id="diskfree">—</span></span>
+        <span class="mono" id="dvrclock" title="device RTC">--:--:--</span>
+      </div>
+    </header>
+
+    <section class="view live active" id="v-live">
+      <div class="livebar">
+        <div class="seg" id="layseg">
+          <button data-lay="1x1">1×1</button><button data-lay="2x1">2×1</button><button class="on" data-lay="2x2">2×2</button>
+        </div>
+        <div class="chnav" id="chnav" style="display:none">
+          <button id="chprev" aria-label="Previous">‹</button><span class="lbl" id="chlabel">CH 1</span><button id="chnext" aria-label="Next">›</button>
+        </div>
+        <span class="pill mono" id="encpill" title="encoder settings reported by the firmware">—</span>
+        <div class="grow"></div>
+        <button class="btn" id="fsbtn"><svg viewBox="0 0 24 24"><path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4"/></svg>Fullscreen</button>
+      </div>
+      <div class="stage" id="stage"><div class="wall" id="wall"></div></div>
+    </section>
+
+    <section class="view" id="v-rec"><div class="view-head"><h2>Recordings</h2><span class="sub" id="recsub">stored on the DVR · SATA</span>
+        <div class="grow"></div>
+        <div class="field"><label>Channel</label><select id="recch"><option value="all">All</option><option value="0">CH 1</option><option value="1">CH 2</option><option value="2">CH 3</option><option value="3">CH 4</option></select></div>
+        <button class="btn" id="recrefresh"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>Refresh</button>
+      </div>
+      <div id="recspans" style="margin-bottom:14px"></div>
+      <div class="clipgrid" id="reclist"></div>
+    </section>
+
+    <section class="view" id="v-mon"><div class="view-head"><h2>Monitor</h2><span class="sub">the DVR's own VGA output — on-screen menu, picture, playback</span>
+        <div class="grow"></div>
+        <button class="btn" id="monrefresh"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>Refresh</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;align-items:start">
+
+        <div class="card" style="padding:16px 18px">
+          <div style="font-weight:600;margin-bottom:4px">Displayed channel</div>
+          <div style="font-size:12px;color:var(--dim);margin-bottom:12px">Which camera the VGA monitor shows. The DVR restarts its pipeline to re-latch VI→VO, so this takes a few seconds.</div>
+          <div class="seg" id="monchseg"><button data-ch="0">CH 1</button><button data-ch="1">CH 2</button><button data-ch="2">CH 3</button><button data-ch="3">CH 4</button></div>
+        </div>
+
+        <div class="card" style="padding:16px 18px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <div style="flex:1"><div style="font-weight:600">On-screen menu</div><div style="font-size:12px;color:var(--dim)">same four keys as the MCU buttons</div></div>
+            <div class="seg" id="osdshowseg"><button data-v="1">Show</button><button data-v="0">Hide</button></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,40px);gap:6px;justify-content:center;margin:6px 0">
+            <span></span><button class="rowbtn" data-osd="UP">▲</button><span></span>
+            <button class="rowbtn" data-osd="EXIT">✕</button><button class="rowbtn" data-osd="ENTER">M</button><span></span>
+            <span></span><button class="rowbtn" data-osd="DOWN">▼</button><span></span>
+          </div>
+          <div class="mono" id="osdstate" style="font-size:12px;color:var(--dim);text-align:center">—</div>
+        </div>
+
+        <div class="card" style="padding:16px 18px">
+          <div style="font-weight:600;margin-bottom:4px">Picture</div>
+          <div style="font-size:12px;color:var(--dim);margin-bottom:10px">TW2866 registers for the displayed channel — live.</div>
+          <div id="picrows"></div>
+          <button class="rowbtn" id="picreset" style="margin-top:8px">Reset to defaults</button>
+        </div>
+
+        <div class="card" style="padding:16px 18px">
+          <div style="font-weight:600;margin-bottom:4px">On-screen playback</div>
+          <div style="font-size:12px;color:var(--dim);margin-bottom:10px">Remote control for a clip playing on the DVR's monitor. Start one from the Clips tab (“▶ monitor”).</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="rowbtn" data-pb="toggle">⏯ Play/Pause</button>
+            <button class="rowbtn" data-pb="back">⏴ Step</button>
+            <button class="rowbtn" data-pb="step">Step ⏵</button>
+            <button class="rowbtn" data-pb="replay">↺ Replay</button>
+            <button class="rowbtn" data-pb="stop">■ Stop</button>
+          </div>
+          <div style="margin-top:10px"><input type="range" id="pbseek" min="0" max="1000" value="0" step="1" style="width:100%"></div>
+          <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
+            <span style="font-size:12px;color:var(--dim)">Speed</span>
+            <div class="seg" id="pbspeed"><button data-v="4">1×</button><button data-v="2">½×</button><button data-v="1">¼×</button></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="view" id="v-files"><div class="view-head"><h2>File manager</h2><span class="sub">DVR filesystem</span>
+        <div class="grow"></div>
+        <button class="btn" id="fmkdir"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New folder</button>
+        <button class="btn" id="frefresh"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>Refresh</button>
+      </div>
+      <div class="crumb" id="crumb"></div>
+      <div class="card"><table><thead><tr><th>Name</th><th>Size</th><th>Modified</th><th style="text-align:right">Actions</th></tr></thead><tbody id="filetable"></tbody></table></div>
+    </section>
+
+    <section class="view" id="v-term"><div class="view-head"><h2>Shell</h2><span class="sub">telnet · root@hilinux — no serial cable needed</span></div>
+      <div class="term">
+        <div class="bar"><span class="dot" id="shdot"></span><span class="mono" id="shstat" style="font-size:12px;color:var(--dim)">idle</span><button class="rowbtn" id="shreconnect" style="margin-left:auto">Reconnect</button></div>
+        <div class="body mono" id="termbody"></div>
+        <div class="inl"><span class="p mono">$</span><input id="terminput" placeholder="type a command…" spellcheck="false" autocomplete="off"><span class="hint">Enter · ↑ history</span></div>
+      </div>
+    </section>
+
+    <section class="view" id="v-set"><div class="view-head"><h2>Configuration</h2><span class="sub">device &amp; capture</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;align-items:start">
+
+        <div class="card" style="padding:16px 18px">
+          <div style="font-weight:600;margin-bottom:10px">Device</div>
+          <table style="width:100%"><tbody id="devinfo"></tbody></table>
+        </div>
+
+        <div class="card" style="padding:16px 18px">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+            <div style="flex:1"><div style="font-weight:600">Device clock</div><div class="mono" id="setclock" style="font-size:12px;color:var(--dim)">—</div></div>
+            <button class="btn" id="btnsync">Sync to this device</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+            <div style="flex:1"><div style="font-weight:600">Video standard</div><div style="font-size:12px;color:var(--dim)">one standard for all channels · restarts the pipeline</div></div>
+            <div class="seg" id="stdseg"><button data-std="NTSC">NTSC</button><button data-std="PAL">PAL</button><button data-std="AUTO">AUTO</button></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="flex:1"><div style="font-weight:600">Buzzer</div><div style="font-size:12px;color:var(--dim)">beeps on menu navigation · record start/stop melodies always play</div></div>
+            <div class="seg" id="sndseg"><button data-snd="1">On</button><button data-snd="0">Off</button></div>
+          </div>
+        </div>
+
+        <div class="card" style="padding:16px 18px;grid-column:1/-1">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <div style="flex:1"><div style="font-weight:600">dvr.conf</div>
+              <div style="font-size:12px;color:var(--dim)">encoder + recording settings, read at startup. Saved to the RAM disk <span class="mono">/root/rec/dvr.conf</span> and mirrored to SATA so it survives a reboot.</div></div>
+            <button class="rowbtn" id="confreload">Reload</button>
+            <button class="btn" id="confsave">Save</button>
+            <button class="btn" id="confrestart" title="killall dvr — the wrapper respawns it">Save &amp; restart DVR</button>
+          </div>
+          <textarea id="conftext" spellcheck="false" class="mono" style="width:100%;min-height:230px;background:var(--bg-2,#0b1116);color:inherit;border:1px solid var(--line,#22303a);border-radius:8px;padding:10px;font-size:12px;line-height:1.5"></textarea>
+          <div class="mono" id="confstat" style="font-size:12px;color:var(--dim);margin-top:6px">—</div>
+        </div>
+
+      </div></section>
+  </div>
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="player">
+    <div class="phead"><span class="tag ch" id="pch">CH 1</span><span class="t mono" id="pname">—</span><button class="pbtn" id="pclose" style="margin-left:auto;width:32px;height:32px"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="scr"><video id="pvideo" controls playsinline style="width:100%;height:100%;background:#000"></video>
+      <div id="ploading" style="position:absolute;inset:0;display:none;place-items:center;background:rgba(6,10,14,.75);color:var(--dim);font-size:13px">preparing clip…</div></div>
+    <div class="pscrub"><input type="range" id="pseek" min="0" max="100" value="0" step="0.1"><span class="mono" id="ptime">00:00 / 00:00</span></div>
+  </div>
+</div>
+<script src="jmuxer.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

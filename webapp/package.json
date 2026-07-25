@@ -1,0 +1,13 @@
+{
+  "name": "dvr-webui",
+  "version": "0.1.0",
+  "description": "Modern web UI for RR104P/Hi3515 analog DVR (FPV ground station)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "jmuxer": "^2.0.5",
+    "ws": "^7.5.13"
+  }
+}

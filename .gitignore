@@ -1,0 +1,63 @@
+# ---- Node / runtime ----
+webapp/node_modules/
+webapp/cache/
+# 84MB ffmpeg.exe — fetched during setup (see SETUP.md)
+webapp/bin/
+
+# ---- leftover capture-phase serving dir (patched DVR web pages) ----
+webserve/
+
+# ---- transient serial-bridge / server logs ----
+serial.log
+cmds.txt
+srv.log
+*.tmp
+
+# ---- large / regenerable dump artifacts ----
+# (regenerable from dump/mtd*.bin + the *.py scripts, or from the device)
+dump/rootfs.ext2
+dump/rootfs_padded.ext2
+dump/rootfs_x/
+dump/live_x/
+dump/rec_prefix.ifv
+dump/ifv_mid.bin
+dump/*.mp4
+dump/*.jpg
+dump/*.h264
+dump/live_ch*
+# dated operational flash snapshots from `tools/dvr.py backup` — the canonical
+# pristine backups are dump/mtd{0,1,2}_*.bin, already committed
+dump/mtd_2*/
+
+# ---- regenerated video from capture logs ----
+capture/*.h264
+capture/*.mp4
+capture/*.jpg
+
+# ---- webapp2 (thin proxy for our own protocol) ----
+webapp2/node_modules/
+webapp2/cache/
+
+# ---- device build artifacts (regenerable via device/dvr/build.sh in WSL) ----
+device/dvr/dvr
+device/dvr/nettest
+device/dvr/hello
+device/dvr/*.bin
+device/*.bin
+device/**/*.o
+
+# ---- flash kit build products (regenerable via flash/build.sh) ----
+# out/ holds the 5 MB image + the 13.7 MB ext2; sata/stock/ holds app.tgz+data.tgz
+# lifted out of dump/mtd2_rootfs.bin. All reproducible, none of it belongs in git.
+flash/out/
+flash/sata/stock/
+flash/sata/dvr
+
+# ---- root scratch/experiment files ----
+scratch_*
+_scratch_*
+tools/__pycache__/
+*.pyc
+
+# ---- Ghidra project (108MB regenerable DB; re-import dump/ghidra/app.out) ----
+/re/
