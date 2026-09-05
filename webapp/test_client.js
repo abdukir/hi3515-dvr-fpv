@@ -1,0 +1,12 @@
+const WebSocket = require('ws');
+const fs = require('fs');
+const ch = process.argv[2] || '0';
+const ws = new WebSocket(`ws://localhost:8090/stream?ch=${ch}&stream=0`);
+ws.binaryType = 'nodebuffer';
+const out = fs.createWriteStream(`../capture/live_ch${ch}.h264`);
+let n = 0, bytes = 0;
+ws.on('open', () => console.log('connected, pulling ch' + ch));
+ws.on('message', (d) => { out.write(d); n++; bytes += d.length; if (n >= 120) { ws.close(); } });
+ws.on('close', () => { out.end(); console.log(`got ${n} frames, ${bytes} bytes -> capture/live_ch${ch}.h264`); process.exit(0); });
+ws.on('error', (e) => { console.log('err', e.message); process.exit(1); });
+setTimeout(() => { ws.close(); }, 12000);

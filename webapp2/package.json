@@ -1,0 +1,9 @@
+{
+  "name": "fpv-dvr-webapp2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Thin browser viewer for our own DVR's lean H.264 stream protocol (docs/PROTOCOL2.md)",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "ws": "^8.18.0" }
+}
